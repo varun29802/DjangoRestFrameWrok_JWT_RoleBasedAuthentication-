@@ -7,11 +7,23 @@ from rest_framework import status
 from .serializers import UserSerializer
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
-from .permissions import isAdministrator,isStaff,isTeacher,isStudent
+from .permissions import IsAdministrator,IsStaff,IsStudent,IsTeacher
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 # Create your views here.
+class Home(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        content = {'message': 'Hello, World!'}
+        return Response(content)
+
+
 class Test(APIView):
     def get(self,request):
+        print(request.auth)
         return Response({"message":"You are calling test Api"})
  
 class UserRegister(APIView):
@@ -34,12 +46,23 @@ class UserLoginView(ObtainAuthToken):
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            login(request, user)
-            token, created = Token.objects.get_or_create(user=user)
-            if created:
-                token.delete()  # Delete the token if it was already created
-                token = Token.objects.create(user=user)
-            return Response({'token': token.key, 'username': user.username, 'role': user.role})
+            # login(request, user)
+            # token, created = Token.objects.get_or_create(user=user)
+            # if created:
+            #     token.delete()  # Delete the token if it was already created
+            #     token = Token.objects.create(user=user)
+            # return Response({'token': token.key, 'username': user.username, 'role': user.role})
+             # Create JWT token
+            access_token = AccessToken.for_user(user)
+            refresh_token = RefreshToken.for_user(user)
+
+            # Optionally, include user role or other details
+            return Response({
+                'access': str(access_token),
+                'refresh': str(refresh_token),
+                'username': user.username,
+                'role': user.role,
+            })
         else:
             return Response({'message': 'Invalid username or password'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -63,25 +86,29 @@ class UserLogoutView(APIView):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 class AdminView(APIView):
-    permission_classes = [IsAuthenticated,isAdministrator]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated,IsAdministrator]
 
     def get(self,request):
         return Response({"message":"This is Admin View and accessible only by admin"})
 
 class StaffView(APIView):
-    permission_classes = [IsAuthenticated,isStaff]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated,IsStaff]
 
     def get(self,request):
         return Response({"message":"This is Staff View and accessible only by admin"})
 
 class TeacherView(APIView):
-    permission_classes = [IsAuthenticated,isTeacher]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated,IsStaff]
 
     def get(self,request):
         return Response({"message":"This is Teacher View and accessible only by admin"})
 
 class StudentView(APIView):
-    permission_classes = [IsAuthenticated,isStudent]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated,IsStudent]
 
     def get(self,request):
         return Response({"message":"This is Student View and accessible only by admin"})
