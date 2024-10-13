@@ -81,7 +81,7 @@ class TeacherView(APIView):
         return Response({"message":"This is Teacher View and accessible only by admin"})
 
 class StudentView(APIView):
-    permission_classes = [IsAuthenticated,isTeacher]
+    permission_classes = [IsAuthenticated,isStudent]
 
     def get(self,request):
         return Response({"message":"This is Student View and accessible only by admin"})
